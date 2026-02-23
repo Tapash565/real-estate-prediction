@@ -1,0 +1,62 @@
+# Docker Compose configuration for Real Estate Prediction Pipeline
+
+services:
+  # Development environment
+  dev:
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/app
+      - model-data:/app/models
+      - processed-data:/app/data/processed
+    environment:
+      - REAL_ESTATE_LOG_LEVEL=DEBUG
+    ports:
+      - "8888:8888"  # Jupyter
+      - "8000:8000"  # API
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+
+  # Training job
+  train:
+    build:
+      context: .
+      target: training
+    volumes:
+      - ./data:/app/data
+      - model-data:/app/models
+      - ./reports:/app/reports
+    environment:
+      - REAL_ESTATE_LOG_LEVEL=INFO
+    command: python run_all.py
+
+  # API server
+  api:
+    build:
+      context: .
+      target: api
+    volumes:
+      - model-data:/app/models:ro  # Read-only models
+    ports:
+      - "8000:8000"
+    environment:
+      - REAL_ESTATE_LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Testing
+  test:
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/app
+    command: pytest tests/ -v --cov=src --cov-report=html --cov-report=term
+
+volumes:
+  model-data:
+  processed-data:

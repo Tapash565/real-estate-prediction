@@ -1,0 +1,63 @@
+# Docker Ignore File
+# Reduces Docker build context size
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large data files
+data/raw/*.csv
+data/processed/*.csv
+
+# Model files (copy explicitly when needed)
+models/*.joblib
+models/*.pkl
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+*.md
+docs/
+
+# Reports
+reports/
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.temp
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db

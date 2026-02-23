@@ -1,0 +1,67 @@
+# Real Estate Prediction Pipeline Configuration
+
+# Data Settings
+data_path: "data/raw/realtor-data.csv"
+target_column: "price"
+sample_size: 100000  # Set to null to use all data
+
+# Feature Configuration
+numerical_features:
+  - "bed"
+  - "bath"
+  - "house_size"
+  - "acre_lot"
+
+categorical_features:
+  - "state"
+  - "status"
+
+# Model Configuration
+model_type: "random_forest"  # Options: linear, sgd, decision_tree, random_forest, gradient_boosting
+n_splits: 5
+random_state: 42
+
+# Hyperparameter Grid (for GridSearchCV)
+# Set to null to skip hyperparameter tuning
+hyperparameter_grid:
+  random_forest:
+    n_estimators: [50, 100, 200]
+    max_depth: [10, 20, null]
+    min_samples_split: [2, 5]
+    min_samples_leaf: [1, 2]
+  
+  gradient_boosting:
+    n_estimators: [50, 100, 200]
+    learning_rate: [0.01, 0.1, 0.2]
+    max_depth: [3, 5, 7]
+  
+  decision_tree:
+    max_depth: [5, 10, 20, null]
+    min_samples_split: [2, 5, 10]
+    min_samples_leaf: [1, 2, 4]
+
+# Model Output Paths
+model_path: "models/latest_model.joblib"
+pipeline_path: "models/preprocessing_pipeline.joblib"
+processed_data_path: "data/processed/processed_data.csv"
+
+# Visualization
+figures_dir: "reports/figures"
+
+# Data Quality
+price_min: 10000
+price_max: 10000000
+required_columns:
+  - "bed"
+  - "bath"
+  - "house_size"
+  - "price"
+
+# Logging
+log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# MLflow (optional)
+mlflow:
+  enabled: false
+  tracking_uri: "file:./mlruns"
+  experiment_name: "real_estate_prediction"
