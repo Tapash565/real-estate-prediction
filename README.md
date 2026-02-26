@@ -23,51 +23,45 @@ A production-ready machine learning project for predicting real estate prices us
 
 ```
 real-estate-prediction/
-├── api/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI application
-│   └── schemas.py           # Pydantic models for request/response validation
-├── data/
-│   ├── raw/
-│   │   └── realtor-data.csv # Raw dataset
-│   └── processed/           # Preprocessed data files
-├── models/                  # Saved trained models and pipelines
-├── notebooks/
-│   └── eda.ipynb           # Exploratory data analysis
-├── reports/
-│   └── figures/            # Generated visualizations
-├── src/
-│   ├── __init__.py
-│   ├── config.py           # Configuration management
-│   ├── data_loader.py      # Data loading utilities
-│   ├── preprocessing.py    # Data preprocessing functions
-│   ├── pipeline.py         # sklearn Pipeline construction
-│   ├── train.py            # Model training with cross-validation and tuning
-│   ├── inference.py        # Model loading and prediction
-│   ├── evaluate.py         # Model evaluation metrics
-│   ├── visualize.py        # Visualization functions
-│   └── model_utils.py      # Model persistence utilities
-├── tests/                  # Comprehensive test suite
-│   ├── conftest.py         # Pytest fixtures
-│   ├── test_config.py      # Configuration tests
-│   ├── test_pipeline.py    # Pipeline tests
-│   ├── test_inference.py   # Inference tests
-│   ├── test_data_loader.py
-│   ├── test_preprocessing.py
-│   ├── test_train.py
-│   ├── test_evaluate.py
-│   ├── test_visualize.py
-│   ├── test_model_utils.py
-│   └── test_api.py
-├── .dockerignore           # Docker build exclusions
-├── .gitignore
-├── config.yaml             # Main configuration file
-├── Dockerfile              # Multi-stage Docker build
-├── docker-compose.yml      # Docker Compose services
-├── requirements.txt        # Python dependencies
-├── run_all.py             # Main pipeline script
-├── CLAUDE.md              # AI assistant guidance
-├── QUICKSTART.md          # Quick start guide
+├── api/                    # FastAPI REST API
+│   ├── main.py            # App entry point, route definitions
+│   ├── schemas.py         # Pydantic request/response models
+│   ├── auth.py            # Authentication (API keys, JWT)
+│   ├── caching.py         # Redis prediction caching
+│   ├── middleware.py      # Rate limiting, CORS, logging
+│   ├── monitoring.py      # Prometheus metrics, Sentry
+│   └── logging_config.py  # Logging configuration
+├── src/                   # ML pipeline modules
+│   ├── config.py          # YAML config + env var overrides
+│   ├── data_loader.py     # CSV data loading
+│   ├── preprocessing.py   # Feature transformations
+│   ├── pipeline.py        # sklearn Pipeline construction
+│   ├── train.py           # Model training with cross-validation
+│   ├── inference.py       # ModelPredictor for predictions
+│   ├── evaluate.py        # R², RMSE, MAE metrics
+│   ├── visualize.py       # Matplotlib/Seaborn plots
+│   ├── model_utils.py     # Model persistence (joblib)
+│   ├── mlflow_tracking.py # Experiment tracking
+│   ├── model_monitoring.py# Drift detection
+│   ├── retraining_pipeline.py
+│   └── ab_testing.py
+├── frontend/              # React + TypeScript app
+│   ├── src/               # React components
+│   └── package.json
+├── tests/                 # pytest test suite (90%+ coverage)
+├── models/                # Saved model files (*.joblib)
+├── data/                  # Raw and processed data
+├── docs/                  # Architecture documentation
+├── notebooks/             # Jupyter notebooks (EDA)
+├── reports/figures/       # Generated visualizations
+├── .dockerignore          # Docker build exclusions
+├── .gitignore             # Git exclusions
+├── config.yaml            # Main configuration file
+├── Dockerfile             # Multi-stage Docker build
+├── docker-compose.yml     # Docker Compose services
+├── requirements.txt       # Python dependencies
+├── run_all.py            # Main pipeline script
+├── Makefile              # Build automation
 └── README.md
 ```
 

@@ -126,7 +126,10 @@ def test_batch_predict(trained_model, numerical_features, categorical_features):
         'bath': np.random.randint(1, 4, n_samples),
         'house_size': np.random.randint(1000, 5000, n_samples),
         'acre_lot': np.random.uniform(0.1, 2.0, n_samples),
+        'city': np.random.choice(['Manchester', 'Nashua', 'Concord'], n_samples),
         'state': np.random.choice(['NH', 'MA', 'VT'], n_samples),
+        'zip_code': np.random.choice(['03101', '03060', '03301'], n_samples).astype(str),
+        'brokered_by': np.random.choice(['Keller Williams', 'RE/MAX', 'Century 21'], n_samples),
         'status': np.random.choice(['for_sale', 'sold'], n_samples)
     }
     large_features = pd.DataFrame(data)

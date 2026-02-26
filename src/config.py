@@ -86,11 +86,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
     # Override with environment variables
     def get_env_or_yaml(section: str, key: str, default=None):
         """Get value from environment variable or YAML config."""
-        env_key = f"REAL_ESTATE_{section.upper()}_{key.upper()}"
+        env_key = f"REAL_ESTATE_{section.upper()}_{key.upper()}" if section else f"REAL_ESTATE_{key.upper()}"
         env_value = os.getenv(env_key)
         if env_value is not None:
             return env_value
-        return yaml_config.get(section, {}).get(key, default)
+        if section:
+            return yaml_config.get(section, {}).get(key, default)
+        return yaml_config.get(key, default)
     
     # Build DataConfig
     data_config = DataConfig(

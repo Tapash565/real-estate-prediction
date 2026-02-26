@@ -39,7 +39,10 @@ def test_preprocessing_handles_missing_values(numerical_features, categorical_fe
         'bath': [2.0, 2.0, np.nan],
         'house_size': [2000.0, 1500.0, 2500.0],
         'acre_lot': [0.25, np.nan, 0.3],
+        'city': ['Manchester', 'Nashua', np.nan],
         'state': ['NH', 'MA', 'NH'],
+        'zip_code': ['03101', '03060', np.nan],
+        'brokered_by': ['Keller Williams', np.nan, 'RE/MAX'],
         'status': ['for_sale', 'sold', np.nan]
     }
     df = pd.DataFrame(data)

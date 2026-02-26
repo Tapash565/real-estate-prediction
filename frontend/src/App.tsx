@@ -51,13 +51,13 @@ function App() {
 
             try {
                 // Fetch model info
-                const modelRes = await fetch('/api/v1/model/info')
+                const modelRes = await fetch('/api/model/info')
                 if (!modelRes.ok) throw new Error('Failed to fetch model info')
                 const modelData = await modelRes.json()
                 setModelInfo(modelData)
 
                 // Fetch categories
-                const catRes = await fetch('/api/v1/model/categories')
+                const catRes = await fetch('/api/model/categories')
                 if (!catRes.ok) throw new Error('Failed to fetch categories')
                 const catData = await catRes.json()
                 setCategories(catData)
@@ -127,7 +127,7 @@ function App() {
         setError(null)
 
         try {
-            const response = await fetch('/api/v1/predict', {
+            const response = await fetch('/api/predict', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

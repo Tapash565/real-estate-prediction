@@ -245,10 +245,12 @@ def train_model(
             score = r2_score(y_train[val_idx], preds)
             fold_scores.append(score)
             logger.info(f"Fold {fold}/{n_splits} R²: {score:.4f}")
+            print(f"Fold {fold}/{n_splits} R²: {score:.4f}")
         
         mean_score = np.mean(fold_scores)
         std_score = np.std(fold_scores)
-        logger.info(f"Cross-validation R²: mean={mean_score:.4f}, std={std_score:.4f}")
+        logger.info(f"Cross‑validation R²: mean={mean_score:.4f}, std={std_score:.4f}")
+        print(f"Cross‑validation R²: mean={mean_score:.4f}, std={std_score:.4f}")
     
     if return_models:
         models = []

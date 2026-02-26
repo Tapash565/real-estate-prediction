@@ -18,6 +18,7 @@ def evaluate_model(y_true, y_pred):
     mae = mean_absolute_error(y_true, y_pred)
 
     return {
+        'Mean Squared Error': mse,
         'Root Mean Squared Error': np.sqrt(mse),
         'R^2 Score': r2,
         'Mean Absolute Error': mae

@@ -170,11 +170,19 @@ class MetricsEndpoint:
 def setup_tracing(service_name: str = "real-estate-api", service_version: str = "1.0.0") -> None:
     """Setup OpenTelemetry tracing.
 
+    Tracing is disabled by default in local development (TRACING_ENABLED=false).
+    Set TRACING_ENABLED=true and OTEL_EXPORTER_OTLP_ENDPOINT to enable it.
+
     Args:
         service_name: Name of the service.
         service_version: Version of the service.
     """
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+    # Kill-switch: skip tracing entirely when disabled
+    if os.getenv("TRACING_ENABLED", "false").lower() != "true":
+        logger.info("tracing_disabled", reason="TRACING_ENABLED is not 'true'")
+        return
+
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
     resource = Resource.create(
         attributes={
@@ -186,18 +194,21 @@ def setup_tracing(service_name: str = "real-estate-api", service_version: str = 
     # Create tracer provider
     provider = TracerProvider(resource=resource)
 
-    # Add span processor with OTLP exporter
-    try:
-        otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
-        span_processor = BatchSpanProcessor(otlp_exporter)
-        provider.add_span_processor(span_processor)
-    except Exception as e:
-        logger.warning("failed_to_setup_otlp_exporter", error=str(e))
+    # Add span processor with OTLP exporter only if endpoint is configured
+    if otlp_endpoint:
+        try:
+            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+            span_processor = BatchSpanProcessor(otlp_exporter)
+            provider.add_span_processor(span_processor)
+            logger.info("tracing_setup", service_name=service_name, endpoint=otlp_endpoint)
+        except Exception as e:
+            logger.warning("failed_to_setup_otlp_exporter", error=str(e))
+    else:
+        logger.info("tracing_setup_local_only", service_name=service_name,
+                   message="OTLP exporter disabled (set OTEL_EXPORTER_OTLP_ENDPOINT to enable)")
 
     # Set the tracer provider
     trace.set_tracer_provider(provider)
-
-    logger.info("tracing_setup", service_name=service_name, endpoint=otlp_endpoint)
 
 
 def get_tracer(name: str = "real-estate-api") -> trace.Tracer:

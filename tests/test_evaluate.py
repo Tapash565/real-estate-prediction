@@ -78,7 +78,7 @@ def test_evaluate_with_arrays(sample_target):
     metrics = evaluate_model(sample_target.values, predictions)
     
     assert isinstance(metrics, dict)
-    assert len(metrics) == 3
+    assert len(metrics) == 4
 
 
 def test_evaluate_zero_variance():

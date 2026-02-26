@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import sentry_sdk
 from fastapi import (
+    APIRouter,
     Depends,
     FastAPI,
     HTTPException,
@@ -70,8 +71,8 @@ from src.model_utils import load_model_bundle
 
 # Configure logging
 configure_logging(
-    log_level=os.getenv("LOG_LEVEL", "INFO"),
-    json_format=os.getenv("LOG_FORMAT", "json").lower() == "json",
+    log_level=os.getenv("LOG_LEVEL", "WARNING"),
+    json_format=False,
 )
 logger = get_logger(__name__)
 
@@ -86,14 +87,14 @@ if sentry_dsn := os.getenv("SENTRY_DSN"):
         environment=os.getenv("ENVIRONMENT", "development"),
         release=os.getenv("APP_VERSION", "1.0.0"),
     )
-    logger.info("sentry_initialized")
+    # logger.info("sentry_initialized")
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 MODEL_PATH = os.path.join("models", "latest_model.joblib")
 PIPELINE_PATH = os.path.join("models", "preprocessing_pipeline.joblib")
-API_PREFIX = "/api/v1"
+# API_PREFIX = "/api"  # Not needed with APIRouter
 
 # Global variables for model and pipeline
 model = None
@@ -138,7 +139,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     global model, preprocessing_pipeline, model_metadata, model_type
 
-    logger.info("api_startup")
+    # logger.info("api_startup")
 
     # Connect to Redis cache
     cache.connect()
@@ -154,13 +155,13 @@ async def lifespan(app: FastAPI):
             )
             model_type = model_metadata.get("model_type", "unknown")
             update_model_metrics(model_type, loaded=True)
-            logger.info(
-                "model_loaded",
-                model_type=model_type,
-                r2_score=model_metadata.get("metrics", {}).get("R^2 Score", "N/A"),
-            )
+            # logger.info(
+            #     "model_loaded",
+            #     model_type=model_type,
+            #     r2_score=model_metadata.get("metrics", {}).get("R^2 Score", "N/A"),
+            # )
         else:
-            logger.warning("model_files_not_found")
+            # logger.warning("model_files_not_found")
             update_model_metrics("none", loaded=False)
     except Exception as e:
         logger.error("model_load_failed", error=str(e))
@@ -169,7 +170,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("api_shutdown")
+    # logger.info("api_shutdown")
 
 
 # =============================================================================
@@ -179,18 +180,21 @@ app = FastAPI(
     title="Real Estate Price Prediction API",
     description="API for predicting real estate prices using machine learning",
     version="1.0.0",
-    docs_url=f"{API_PREFIX}/docs",
-    redoc_url=f"{API_PREFIX}/redoc",
-    openapi_url=f"{API_PREFIX}/openapi.json",
     lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
+
+# Create API router for /api prefix
+api_router = APIRouter(prefix="/api")
 
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add middlewares
-app.add_middleware(RequestLoggingMiddleware)
+# app.add_middleware(RequestLoggingMiddleware)  # Disabled to prevent console logging
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TimeoutMiddleware, timeout_seconds=60.0)
@@ -258,8 +262,8 @@ async def root():
     return {
         "message": "Welcome to the Real Estate Price Prediction API",
         "version": "1.0.0",
-        "documentation": f"{API_PREFIX}/docs",
-        "health_check": f"{API_PREFIX}/health",
+        "documentation": "/docs",
+        "health_check": "/health",
         "metrics": "/metrics",
     }
 
@@ -287,7 +291,7 @@ async def metrics():
 # =============================================================================
 # AUTHENTICATION ENDPOINTS
 # =============================================================================
-@app.post(f"{API_PREFIX}/auth/token", response_model=Token, tags=["Authentication"])
+@api_router.post("/auth/token", response_model=Token, tags=["Authentication"])
 async def login_for_access_token(
     username: str = Query(..., description="Username"),
     password: str = Query(..., description="Password"),
@@ -308,8 +312,8 @@ async def login_for_access_token(
 # =============================================================================
 # PROTECTED ENDPOINTS (auth required)
 # =============================================================================
-@app.get(
-    f"{API_PREFIX}/model/info",
+@api_router.get(
+    "/model/info",
     response_model=ModelInfoResponse,
     tags=["Model"],
     dependencies=[Depends(require_read)],
@@ -329,8 +333,8 @@ async def get_model_info():
     )
 
 
-@app.get(
-    f"{API_PREFIX}/model/features",
+@api_router.get(
+    "/model/features",
     tags=["Model"],
     dependencies=[Depends(require_read)],
 )
@@ -347,8 +351,8 @@ async def get_model_features():
     }
 
 
-@app.get(
-    f"{API_PREFIX}/model/metrics",
+@api_router.get(
+    "/model/metrics",
     tags=["Model"],
     dependencies=[Depends(require_read)],
 )
@@ -369,8 +373,8 @@ async def get_model_metrics():
     }
 
 
-@app.get(
-    f"{API_PREFIX}/model/categories",
+@api_router.get(
+    "/model/categories",
     tags=["Model"],
     dependencies=[Depends(require_read)],
 )
@@ -406,8 +410,8 @@ async def get_model_categories():
         )
 
 
-@app.post(
-    f"{API_PREFIX}/predict",
+@api_router.post(
+    "/predict",
     response_model=PredictionResponse,
     tags=["Prediction"],
     dependencies=[Depends(require_read)],
@@ -446,11 +450,11 @@ async def predict_price(
                 latency=latency,
                 cached=True,
             )
-            logger.info(
-                "prediction_cached",
-                user=current_user.username,
-                price=cached_result["predicted_price"],
-            )
+            # logger.info(
+            #     "prediction_cached",
+            #     user=current_user.username,
+            #     price=cached_result["predicted_price"],
+            # )
             return PredictionResponse(**cached_result)
 
     try:
@@ -489,12 +493,12 @@ async def predict_price(
             cached=False,
         )
 
-        logger.info(
-            "prediction_made",
-            user=current_user.username,
-            price=prediction,
-            latency=latency,
-        )
+        # logger.info(
+        #     "prediction_made",
+        #     user=current_user.username,
+        #     price=prediction,
+        #     latency=latency,
+        # )
 
         return PredictionResponse(**result)
 
@@ -511,8 +515,8 @@ async def predict_price(
         )
 
 
-@app.post(
-    f"{API_PREFIX}/predict/batch",
+@api_router.post(
+    "/predict/batch",
     response_model=BatchPredictionResponse,
     tags=["Prediction"],
     dependencies=[Depends(require_read)],
@@ -555,12 +559,12 @@ async def predict_batch(
 
         latency = (datetime.now() - start_time).total_seconds()
 
-        logger.info(
-            "batch_prediction_made",
-            user=current_user.username,
-            count=len(predictions),
-            latency=latency,
-        )
+        # logger.info(
+        #     "batch_prediction_made",
+        #     user=current_user.username,
+        #     count=len(predictions),
+        #     latency=latency,
+        # )
 
         return BatchPredictionResponse(
             predictions=predictions,
@@ -574,8 +578,8 @@ async def predict_batch(
         )
 
 
-@app.post(
-    f"{API_PREFIX}/predict/explain",
+@api_router.post(
+    "/predict/explain",
     response_model=PredictionExplanationResponse,
     tags=["Prediction"],
     dependencies=[Depends(require_read)],
@@ -618,11 +622,11 @@ async def explain_prediction(
         prediction = model.predict(X_processed)[0]
         prediction = max(0, float(prediction))
 
-        logger.info(
-            "prediction_explained",
-            user=current_user.username,
-            price=prediction,
-        )
+        # logger.info(
+        #     "prediction_explained",
+        #     user=current_user.username,
+        #     price=prediction,
+        # )
 
         return PredictionExplanationResponse(
             predicted_price=round(prediction, 2),
@@ -639,17 +643,23 @@ async def explain_prediction(
 
 
 # =============================================================================
+# INCLUDE ROUTERS
+# =============================================================================
+app.include_router(api_router)
+
+
+# =============================================================================
 # ERROR HANDLERS
 # =============================================================================
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Custom HTTP exception handler."""
-    logger.warning(
-        "http_exception",
-        path=request.url.path,
-        status_code=exc.status_code,
-        detail=exc.detail,
-    )
+    # logger.warning(
+    #     "http_exception",
+    #     path=request.url.path,
+    #     status_code=exc.status_code,
+    #     detail=exc.detail,
+    # )
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail},

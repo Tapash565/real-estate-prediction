@@ -53,7 +53,18 @@ def mock_model_and_pipeline(monkeypatch):
 def client():
     """Create a test client."""
     from api.main import app
-    return TestClient(app)
+    from api.auth import require_read, get_current_active_user, User
+    
+    # Mock authentication dependencies
+    # Both dependencies should return a User instance since RoleChecker returns User
+    mock_user = User(username="testuser", scopes=["read", "write"])
+    app.dependency_overrides[require_read] = lambda: mock_user
+    app.dependency_overrides[get_current_active_user] = lambda: mock_user
+    
+    yield TestClient(app)
+    
+    # Clean up overrides
+    app.dependency_overrides.clear()
 
 
 def test_root_endpoint(client):
@@ -89,7 +100,7 @@ def test_predict_endpoint_with_model(client, mock_model_and_pipeline):
         "status": "for_sale"
     }
     
-    response = client.post("/predict", json=property_data)
+    response = client.post("/api/predict", json=property_data)
     
     assert response.status_code == 200
     data = response.json()
@@ -111,7 +122,7 @@ def test_predict_endpoint_invalid_input(client, mock_model_and_pipeline):
         "status": "for_sale"
     }
     
-    response = client.post("/predict", json=invalid_data)
+    response = client.post("/api/predict", json=invalid_data)
     
     # Should return validation error
     assert response.status_code == 422
@@ -146,7 +157,7 @@ def test_batch_predict_endpoint(client, mock_model_and_pipeline):
         ]
     }
     
-    response = client.post("/predict/batch", json=batch_data)
+    response = client.post("/api/predict/batch", json=batch_data)
     
     assert response.status_code == 200
     data = response.json()
@@ -157,7 +168,7 @@ def test_batch_predict_endpoint(client, mock_model_and_pipeline):
 
 def test_model_info_endpoint(client, mock_model_and_pipeline):
     """Test model info endpoint."""
-    response = client.get("/model/info")
+    response = client.get("/api/model/info")
     
     assert response.status_code == 200
     data = response.json()
@@ -167,7 +178,7 @@ def test_model_info_endpoint(client, mock_model_and_pipeline):
 
 def test_model_features_endpoint(client, mock_model_and_pipeline):
     """Test model features endpoint."""
-    response = client.get("/model/features")
+    response = client.get("/api/model/features")
     
     assert response.status_code == 200
     data = response.json()
@@ -178,7 +189,7 @@ def test_model_features_endpoint(client, mock_model_and_pipeline):
 
 def test_model_metrics_endpoint(client, mock_model_and_pipeline):
     """Test model metrics endpoint."""
-    response = client.get("/model/metrics")
+    response = client.get("/api/model/metrics")
     
     assert response.status_code == 200
     data = response.json()
@@ -204,7 +215,7 @@ def test_predict_without_model_loaded(client, monkeypatch):
         "status": "for_sale"
     }
     
-    response = client.post("/predict", json=property_data)
+    response = client.post("/api/predict", json=property_data)
     
     # Should return service unavailable
     assert response.status_code == 503
@@ -218,7 +229,7 @@ def test_predict_missing_fields(client, mock_model_and_pipeline):
         # Missing other required fields
     }
     
-    response = client.post("/predict", json=incomplete_data)
+    response = client.post("/api/predict", json=incomplete_data)
     
     # Should return validation error
     assert response.status_code == 422

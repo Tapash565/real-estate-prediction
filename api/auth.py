@@ -8,7 +8,7 @@ from typing import Any, Optional
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from pydantic import BaseModel
 
 # Security configuration
@@ -16,9 +16,6 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 API_KEY_NAME = "X-API-Key"
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Security schemes
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -48,20 +45,65 @@ class UserInDB(User):
     hashed_password: str
 
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain password against its hash.
+    
+    Args:
+        plain_password: Plain text password to verify
+        hashed_password: Hashed password to compare against
+        
+    Returns:
+        bool: True if password matches, False otherwise
+        
+    Note:
+        Returns False for passwords >72 bytes (bcrypt 5.x limit) or malformed hashes.
+    """
+    try:
+        password_bytes = plain_password.encode('utf-8')
+        # bcrypt 5.x raises ValueError for passwords >72 bytes
+        if len(password_bytes) > 72:
+            return False
+        return bcrypt.checkpw(password_bytes, hashed_password.encode('utf-8'))
+    except (ValueError, AttributeError, TypeError):
+        # Return False for malformed/invalid hashed passwords or encoding errors
+        return False
+
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt.
+    
+    Args:
+        password: Plain text password to hash
+        
+    Returns:
+        str: Hashed password
+        
+    Raises:
+        ValueError: If password exceeds 72 bytes (bcrypt limit)
+    """
+    password_bytes = password.encode('utf-8')
+    # bcrypt 5.x raises ValueError for passwords >72 bytes
+    if len(password_bytes) > 72:
+        raise ValueError(
+            f"Password too long: {len(password_bytes)} bytes (max 72 bytes for bcrypt)"
+        )
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode('utf-8')
+
+
 # In-memory user database (use proper database in production)
 USERS_DB: dict[str, UserInDB] = {
     "admin": UserInDB(
         username="admin",
         email="admin@example.com",
         full_name="Admin User",
-        hashed_password=pwd_context.hash("admin123"),  # Change in production!
+        hashed_password=get_password_hash("admin123"),  # Change in production!
         scopes=["read", "write", "admin"],
     ),
     "user": UserInDB(
         username="user",
         email="user@example.com",
         full_name="Regular User",
-        hashed_password=pwd_context.hash("user123"),  # Change in production!
+        hashed_password=get_password_hash("user123"),  # Change in production!
         scopes=["read"],
     ),
 }
@@ -74,16 +116,6 @@ API_KEYS: dict[str, dict[str, Any]] = {
         "name": "Test API Key",
     },
 }
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """Hash a password."""
-    return pwd_context.hash(password)
 
 
 def get_user(username: str) -> Optional[UserInDB]:
@@ -204,7 +236,7 @@ class RoleChecker:
     """Role-based permission checker."""
 
     def __init__(self, allowed_roles: list[str]):
-        """Initialize with allowed roles.""""
+        """Initialize with allowed roles."""
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: User = Depends(get_current_active_user)) -> User:

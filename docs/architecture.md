@@ -124,7 +124,7 @@ sequenceDiagram
     participant Metrics as Prometheus
     participant Logger as Structured Logger
 
-    Client->>LB: POST /api/v1/predict
+    Client->>LB: POST /api/predict
     LB->>API: Forward Request
 
     API->>Logger: Log Request (request_id)

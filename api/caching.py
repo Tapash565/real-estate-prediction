@@ -30,7 +30,10 @@ class RedisCache:
         self._connected = False
 
     def connect(self) -> bool:
-        """Connect to Redis."""
+        """Connect to Redis. Skipped if CACHE_ENABLED=false."""
+        if os.getenv("CACHE_ENABLED", "true").lower() == "false":
+            logger.info("redis_cache_disabled", reason="CACHE_ENABLED=false")
+            return False
         try:
             self._client = redis.Redis(
                 host=REDIS_HOST,

@@ -112,16 +112,37 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
+    # Paths that need a relaxed CSP for Swagger/ReDoc to work
+    DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
+    # CSP that allows Swagger UI and ReDoc CDN assets
+    DOCS_CSP = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "font-src 'self' https://fonts.gstatic.com https://unpkg.com; "
+        "img-src 'self' data: https://fastapi.tiangolo.com; "
+        "worker-src blob:; "
+        "connect-src 'self';"
+    )
+
+    # Strict CSP for all other routes
+    API_CSP = "default-src 'self'"
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Add security headers to response."""
         response = await call_next(request)
 
+        # Choose CSP based on path
+        path = request.url.path
+        csp = self.DOCS_CSP if path in self.DOCS_PATHS or path.startswith("/docs") else self.API_CSP
+
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"  # DENY breaks Swagger iframe
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        response.headers["Content-Security-Policy"] = csp
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 
